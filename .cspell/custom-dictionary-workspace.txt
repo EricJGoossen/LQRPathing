@@ -1,0 +1,6 @@
+# Custom Dictionary Words
+Eigen
+coeffs
+Makefiles
+ldlt
+endforeach

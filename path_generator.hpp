@@ -2,42 +2,38 @@
 #define PATH_GENERATOR_HPP_
 
 #include <vector>
+#include <memory>
 
 #include "state_generators/abstract_state_generator.hpp"
-#include "topological_sort.hpp"
+#include "state_indexer.hpp"
+#include "path.hpp"
 
 namespace auto_nav
 {
 template <typename... Generators>
 class PathGenerator {
+    using StateType = Path::StateType;
     using Generator = state_generators::AbstractStateGenerator;
-public:
-    PathGenerator() : generator_instances_(CreateGeneratorInstances()) {}
-    PathGenerator(const PathGenerator&) = delete;
-    PathGenerator& operator=(const PathGenerator&) = delete;
-    PathGenerator(PathGenerator&&) = default;
-    PathGenerator& operator=(PathGenerator&&) = default;
-    ~PathGenerator() { 
-        for (auto* g : generator_instances_) {
-            delete g;
-        }
-    }
 
-    const std::vector<Generator*>& GetGeneratorInstances() const {
-        return generator_instances_;
-    }
+public:
+    PathGenerator(Path initial_path)
+        : generator_instances_(CreateGeneratorInstances()),
+          state_indexer_(CreateStateIndexer()),
+          path_(std::move(initial_path)) {}
+
+    const StateIndexer& GetStateIndexer() const { return state_indexer_; }
+    const Path& GetPath() const { return path_; }
+
+    void GeneratePath(const std::vector<StateType>& current_state); // TODO: Implement this function to generate the path using the generator instances and state indexer
 
 private:
-    using Sorted = TopologicalSort::SortResult<Generators...>;
+    std::vector<std::shared_ptr<Generator>> generator_instances_;
+    StateIndexer state_indexer_;
+    Path path_;
 
-    static constexpr int NUM_GENERATORS = Sorted::Size();
-
-    std::vector<Generator*> generator_instances_;
-
-    static std::vector<Generator*> CreateGeneratorInstances() {
-        return Sorted::template CreateInstancesFromTypeList<Generator>();
-    }
+    static std::vector<std::shared_ptr<Generator>> CreateGeneratorInstances();
+    static StateIndexer CreateStateIndexer();
 };
-}  // namespace auto_nav::state_generators
+}  // namespace auto_nav
 
 #endif  // PATH_GENERATOR_HPP_
