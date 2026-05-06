@@ -6,59 +6,57 @@
 #include <utility>
 #include <vector>
 
-namespace auto_nav
-{
+namespace auto_nav {
 class TopologicalSort {
-public:
-    template<typename... Types>
+  public:
+    template <typename... Types>
     struct TypeList {};
 
-    template<typename... Types>
+    template <typename... Types>
     using DependenciesList = std::tuple<Types...>;
 
-    template<typename... Types>
+    template <typename... Types>
     static constexpr auto Sort() {
         constexpr MaxValues max_values = FindMaxValues<Types...>();
-        constexpr int total_ids = max_values.max_id + 1; 
+        constexpr int total_ids = max_values.max_id + 1;
         constexpr int max_num_deps = max_values.max_num_deps;
         constexpr int num_unique = FindNumUnique<total_ids, Types...>();
 
         return UnpackTypeMappings<
             SortMappings<num_unique, max_num_deps>(
-            CreateUniqueArray<num_unique, max_num_deps, Types...>()),
+                CreateUniqueArray<num_unique, max_num_deps, Types...>()
+            ),
             Types...>();
     }
 
-    template<typename... Types>
+    template <typename... Types>
     struct SortResult {
-    private:
+      private:
         static constexpr auto kSorted = TopologicalSort::Sort<Types...>();
         using Sorted = std::remove_const_t<decltype(kSorted)>;
 
-    public:
-        template<typename Base>
-        static std::vector<Base*>  CreateInstancesFromTypeList() {
+      public:
+        template <typename Base>
+        static std::vector<Base*> CreateInstancesFromTypeList() {
             return CreateInstancesImpl<Base, Sorted>();
         }
 
-    private:
-        template<typename Base, typename TypeList>
+      private:
+        template <typename Base, typename TypeList>
         struct Impl;
 
-        template<typename Base, typename... SortedTypes>
+        template <typename Base, typename... SortedTypes>
         struct Impl<Base, TypeList<SortedTypes...>> {
-            static std::vector<Base*> run() {
-                return { new SortedTypes{}... };
-            }
+            static std::vector<Base*> run() { return {new SortedTypes{}...}; }
         };
 
-        template<typename Base, typename TypeList>
+        template <typename Base, typename TypeList>
         static auto CreateInstancesImpl() {
             return Impl<Base, TypeList>::run();
         }
     };
 
-private:
+  private:
     static constexpr int INVALID_ID = -1;
 
     struct MaxValues {
@@ -71,7 +69,7 @@ private:
         int count = 0;
     };
 
-    template<int MaxNumDeps>
+    template <int MaxNumDeps>
     struct Node {
         int id = 0;
         int in_degree = 0;
@@ -79,7 +77,7 @@ private:
         std::array<int, MaxNumDeps> dependencies{};
     };
 
-    template<typename... Types>
+    template <typename... Types>
     static constexpr MaxValues FindMaxValues() {
         MaxValues max_values{0, 0};
         auto find_max_values = [&max_values]<typename T>() {
@@ -98,7 +96,7 @@ private:
         return max_values;
     }
 
-    template<int ListSize, typename... Types>
+    template <int ListSize, typename... Types>
     static constexpr int FindNumUnique() {
         int num_unique = 0;
         std::array<bool, ListSize> seen_types{};
@@ -113,8 +111,9 @@ private:
         return num_unique;
     }
 
-    template<int NumUnique, int MaxNumDeps, typename... Types>
-    static constexpr std::array<Node<MaxNumDeps>, NumUnique> CreateUniqueArray() {
+    template <int NumUnique, int MaxNumDeps, typename... Types>
+    static constexpr std::array<Node<MaxNumDeps>, NumUnique> CreateUniqueArray(
+    ) {
         std::array<Node<MaxNumDeps>, NumUnique> unique_types{};
         int unique_idx = 0;
 
@@ -137,7 +136,8 @@ private:
             auto& deps = unique_types[unique_idx - 1].dependencies;
             using Dependencies = typename T::Dependencies;
 
-            [&deps]<typename... DependencyTypes>(std::tuple<DependencyTypes...>) {
+            [&deps]<
+                typename... DependencyTypes>(std::tuple<DependencyTypes...>) {
                 static_assert(sizeof...(DependencyTypes) <= MaxNumDeps);
                 int dep_idx = 0;
                 (..., (deps[dep_idx++] = DependencyTypes::ID));
@@ -156,36 +156,38 @@ private:
         return unique_types;
     }
 
-    template<typename T>
+    template <typename T>
     struct TupleToTypeList;
 
-    template<typename... Types>
+    template <typename... Types>
     struct TupleToTypeList<std::tuple<Types...>> {
         using type = TypeList<Types...>;
     };
 
-    template<auto Arr, typename... Types>
+    template <auto Arr, typename... Types>
     static constexpr auto UnpackTypeMappings() {
         return []<std::size_t... I>(std::index_sequence<I...>) {
-            auto repeat_type = []<typename T, std::size_t... J>(std::index_sequence<J...>) {
-                return std::tuple<std::conditional_t<true, T, std::integral_constant<std::size_t, J>>...>{};
-            };
+            auto repeat_type =
+                []<typename T, std::size_t... J>(std::index_sequence<J...>) {
+                    return std::tuple<std::conditional_t<
+                        true,
+                        T,
+                        std::integral_constant<std::size_t, J>>...>{};
+                };
 
             return typename TupleToTypeList<
-                decltype(std::tuple_cat(
-                    repeat_type.template operator()< 
-                        std::tuple_element_t<Arr[I].idx, std::tuple<Types...>>
-                    >(std::make_index_sequence<Arr[I].count>{})...
-                ))
-            >::type{};
-
-        }(std::make_index_sequence<std::size(Arr)>{});
+                decltype(std::tuple_cat(repeat_type.template operator(
+                )<std::tuple_element_t<Arr[I].idx, std::tuple<Types...>>>(
+                    std::make_index_sequence<Arr[I].count>{}
+                )...))>::type{};
+        }
+        (std::make_index_sequence<std::size(Arr)>{});
     }
 
-    template<int NumUnique, int MaxNumDeps>
-    static constexpr std::array<TypeMapping, NumUnique>
-    SortMappings(std::array<Node<MaxNumDeps>, NumUnique> unique_mappings) {
-
+    template <int NumUnique, int MaxNumDeps>
+    static constexpr std::array<TypeMapping, NumUnique> SortMappings(
+        std::array<Node<MaxNumDeps>, NumUnique> unique_mappings
+    ) {
         int front = 0, back = 0;
         std::array<int, NumUnique> queue{};
 
@@ -198,7 +200,7 @@ private:
         std::array<TypeMapping, NumUnique> final_order_indicies{};
         int idx = 0;
 
-        while(front < back) {
+        while (front < back) {
             int node = queue[front++];
             final_order_indicies[idx++] = unique_mappings[node].type_mapping;
 
@@ -206,7 +208,8 @@ private:
                 for (int i = 0; i < MaxNumDeps; ++i) {
                     if (unique_mappings[j].dependencies[i] == INVALID_ID) break;
 
-                    if (unique_mappings[j].dependencies[i] == unique_mappings[node].id) {
+                    if (unique_mappings[j].dependencies[i] ==
+                        unique_mappings[node].id) {
                         if (--unique_mappings[j].in_degree == 0) {
                             queue[back++] = j;
                         }

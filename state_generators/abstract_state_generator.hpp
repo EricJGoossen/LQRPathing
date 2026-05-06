@@ -1,8 +1,8 @@
 #ifndef ABSTRACT_STATE_GENERATOR_HPP_
 #define ABSTRACT_STATE_GENERATOR_HPP_
 
-#include "../state_indexer.hpp"
 #include "../path.hpp"
+#include "../state_indexer.hpp"
 namespace auto_nav::state_generators {
 
 class AbstractStateGenerator {
@@ -20,7 +20,8 @@ class AbstractStateGenerator {
 
     virtual int Id() const = 0;
     virtual int Dimension() const;
-    virtual void Generate(const StateIndexer& indexer, Path& current_path) const;
+    virtual void Generate(const StateIndexer& indexer, Path& current_path)
+        const;
 };
 }  // namespace auto_nav::state_generators
 
