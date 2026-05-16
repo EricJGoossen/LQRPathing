@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-namespace auto_nav {
+namespace autonav {
 class TopologicalSort {
   public:
     template <typename... Types>
@@ -226,6 +226,6 @@ class TopologicalSort {
         return final_order_indicies;
     }
 };
-}  // namespace auto_nav
+}  // namespace autonav
 
 #endif  // TOPOLOGICAL_SORT_HPP_

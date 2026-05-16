@@ -1,0 +1,17 @@
+{
+    "C_Cpp.intelliSenseEngine": "disabled",
+    "cSpell.customDictionaries": {
+        "workspace-custom": {
+            "name": "workspace-custom",
+            "path": "${workspaceFolder}/.cspell/custom-dictionary-workspace.txt",
+            "addWords": true,
+            "scope": "workspace"
+        }
+    },
+    "cSpell.dictionaries": [
+        "workspace-custom"
+    ],
+    "cSpell.words": [
+        "autonav"
+    ]
+}

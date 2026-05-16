@@ -28,10 +28,16 @@ CheckOptions:
       value: CamelCase
     - key: readability-identifier-naming.AbstractClassCase
       value: CamelCase
+    - key: readability-identifier-naming.EnumCase
+      value: CamelCase
+    - key: readability-identifier-naming.EnumConstantCase
+      value: CamelCase
+    - key: readability-identifier-naming.EnumConstantPrefix
+      value: 'k'
     - key: readability-identifier-naming.MethodCase
-      value: camelCase                    
+      value: CamelCase                    
     - key: readability-identifier-naming.FunctionCase
-      value: camelCase                    
+      value: CamelCase                    
     - key: readability-identifier-naming.ParameterCase
       value: lower_case
     - key: readability-identifier-naming.NamespaceCase

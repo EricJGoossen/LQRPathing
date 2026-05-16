@@ -4,3 +4,5 @@ coeffs
 Makefiles
 ldlt
 endforeach
+AUTONAV
+autonav
