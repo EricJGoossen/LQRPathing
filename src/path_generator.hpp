@@ -3,12 +3,14 @@
 
 #include <vector>
 
+#include "indexer.hpp"
 #include "path.hpp"
 #include "state_generators/abstract_state_generator.hpp"
-#include "indexer.hpp"
 
 namespace autonav {
 
+// Fills a Path's target states by running its state generators in dependency
+// order (position before velocity, and so on), then times it.
 class PathGenerator {
     using Generator = state_generators::AbstractStateGenerator;
 
@@ -16,6 +18,8 @@ class PathGenerator {
     PathGenerator(std::vector<const Generator*>& generators);
 
     void GeneratePath(Path& waypoint_path);
+
+    const Indexer& GetIndexer() const { return indexer_; }
 
   private:
     void InitializeGenerators();

@@ -6,15 +6,15 @@
 namespace autonav::state_controllers {
 class IStateController {
   public:
-    IStateController();
+    IStateController() = default;
     IStateController(const IStateController&) = default;
     IStateController& operator=(const IStateController&) = default;
     IStateController(IStateController&&) = default;
     IStateController& operator=(IStateController&&) = default;
     virtual ~IStateController() = default;
 
-    virtual Eigen::VectorXd ComputeControl(
-        const Eigen::VectorXd& x
+    // The control input for a state error (state minus target).
+    virtual Eigen::VectorXd ComputeControl(const Eigen::VectorXd& error
     ) const = 0;
 };
 }  // namespace autonav::state_controllers
