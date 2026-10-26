@@ -14,7 +14,8 @@ class IStateController {
     virtual ~IStateController() = default;
 
     // The control input for a state error (state minus target).
-    virtual Eigen::VectorXd ComputeControl(const Eigen::VectorXd& error) const = 0;
+    virtual Eigen::VectorXd ComputeControl(const Eigen::VectorXd& error
+    ) const = 0;
 };
 }  // namespace autonav::state_controllers
 

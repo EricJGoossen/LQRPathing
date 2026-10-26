@@ -16,7 +16,8 @@ class PositionStateGenerator : public AbstractStateGenerator {
   public:
     enum State : std::uint8_t { kX = 0, kY = 1, kTheta = 2, kDimensions = 3 };
 
-    explicit PositionStateGenerator(double spacing = 0.01) : spacing_(spacing) {}
+    explicit PositionStateGenerator(double spacing = 0.01)
+      : spacing_(spacing) {}
     PositionStateGenerator(const PositionStateGenerator&) = delete;
     PositionStateGenerator& operator=(const PositionStateGenerator&) = delete;
     PositionStateGenerator(PositionStateGenerator&&) = default;

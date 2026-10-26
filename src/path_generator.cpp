@@ -1,13 +1,13 @@
 #include "path_generator.hpp"
 
+#include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
-#include <stdexcept>
 
 namespace autonav {
 
 PathGenerator::PathGenerator(std::vector<const Generator*>& generators)
-    : generators_(&generators) {
+  : generators_(&generators) {
     InitializeGenerators();
 }
 
@@ -18,9 +18,9 @@ void PathGenerator::GeneratePath(Path& waypoint_path) {
     waypoint_path.TimeParametrize();
 }
 
-void PathGenerator::InitializeGenerators() {   
+void PathGenerator::InitializeGenerators() {
     TopologicalSort();
-    
+
     for (const auto& generator : *generators_) {
         indexer_.RegisterGenerator(*generator);
     }
@@ -41,7 +41,8 @@ void PathGenerator::TopologicalSort() {
         }
 
         if (inStack.count(id)) {
-            throw std::runtime_error("Cycle detected in generator dependencies");
+            throw std::runtime_error("Cycle detected in generator dependencies"
+            );
         }
 
         inStack.insert(id);
@@ -61,5 +62,4 @@ void PathGenerator::TopologicalSort() {
     *generators_ = std::move(result);
 }
 
-
-} // namespace autonav
+}  // namespace autonav

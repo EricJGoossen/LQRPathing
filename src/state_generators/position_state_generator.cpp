@@ -14,13 +14,15 @@ namespace {
 // derivative at the ends.
 class CubicSpline {
   public:
-    CubicSpline(const std::vector<double>& u, const std::vector<double>& y) : u_(u), y_(y) {
+    CubicSpline(const std::vector<double>& u, const std::vector<double>& y)
+      : u_(u), y_(y) {
         const size_t n = u.size();
         m_.assign(n, 0.0);  // second derivatives at the knots
         if (n < 3) {
             return;
         }
-        // Tridiagonal system for the interior second derivatives (Thomas algorithm).
+        // Tridiagonal system for the interior second derivatives (Thomas
+        // algorithm).
         std::vector<double> a(n, 0.0), b(n, 1.0), c(n, 0.0), d(n, 0.0);
         for (size_t i = 1; i + 1 < n; ++i) {
             const double h0 = u[i] - u[i - 1];
@@ -47,7 +49,8 @@ class CubicSpline {
         const double a = (u_[i + 1] - u) / h;
         const double b = (u - u_[i]) / h;
         return a * y_[i] + b * y_[i + 1] +
-               ((a * a * a - a) * m_[i] + (b * b * b - b) * m_[i + 1]) * h * h / 6.0;
+               ((a * a * a - a) * m_[i] + (b * b * b - b) * m_[i + 1]) * h * h /
+                   6.0;
     }
 
   private:
@@ -67,7 +70,9 @@ double Unwrap(double angle, double reference) {
 }
 }  // namespace
 
-void PositionStateGenerator::Generate(Path& current_path, const Indexer& indexer) const {
+void PositionStateGenerator::Generate(
+    Path& current_path, const Indexer& indexer
+) const {
     const auto& waypoints = current_path.Waypoints();
     if (waypoints.size() < 2) {
         throw std::invalid_argument("A path needs at least two waypoints");
@@ -76,19 +81,23 @@ void PositionStateGenerator::Generate(Path& current_path, const Indexer& indexer
     // Spline parameter: chord length between waypoints.
     std::vector<double> u{0.0}, xs{waypoints[0].x()}, ys{waypoints[0].y()};
     for (size_t i = 1; i < waypoints.size(); ++i) {
-        u.push_back(u.back() + (waypoints[i].head<2>() - waypoints[i - 1].head<2>()).norm());
+        u.push_back(
+            u.back() +
+            (waypoints[i].head<2>() - waypoints[i - 1].head<2>()).norm()
+        );
         xs.push_back(waypoints[i].x());
         ys.push_back(waypoints[i].y());
     }
     const CubicSpline spline_x(u, xs), spline_y(u, ys);
 
-    // Arc length as a function of the spline parameter, from a dense sweep; then
-    // invert it to place samples every `spacing_` meters along the curve.
+    // Arc length as a function of the spline parameter, from a dense sweep;
+    // then invert it to place samples every `spacing_` meters along the curve.
     const size_t dense = 200 * (waypoints.size() - 1);
     std::vector<double> dense_u(dense + 1), dense_s(dense + 1, 0.0);
     double px = spline_x(0.0), py = spline_y(0.0);
     for (size_t k = 0; k <= dense; ++k) {
-        dense_u[k] = u.back() * static_cast<double>(k) / static_cast<double>(dense);
+        dense_u[k] =
+            u.back() * static_cast<double>(k) / static_cast<double>(dense);
         const double qx = spline_x(dense_u[k]), qy = spline_y(dense_u[k]);
         if (k > 0) {
             dense_s[k] = dense_s[k - 1] + std::hypot(qx - px, qy - py);
@@ -97,17 +106,22 @@ void PositionStateGenerator::Generate(Path& current_path, const Indexer& indexer
         py = qy;
     }
     const double length = dense_s.back();
-    const size_t samples = static_cast<size_t>(std::ceil(length / spacing_)) + 1;
+    const size_t samples =
+        static_cast<size_t>(std::ceil(length / spacing_)) + 1;
     current_path.Resize(samples, indexer.Dimension());
 
-    // Heading: unwrapped waypoint headings, placed at each waypoint's arc length.
-    std::vector<double> waypoint_s(waypoints.size()), waypoint_theta(waypoints.size());
+    // Heading: unwrapped waypoint headings, placed at each waypoint's arc
+    // length.
+    std::vector<double> waypoint_s(waypoints.size()),
+        waypoint_theta(waypoints.size());
     for (size_t i = 0, k = 0; i < waypoints.size(); ++i) {
         while (k < dense && dense_u[k] < u[i]) {
             ++k;
         }
         waypoint_s[i] = dense_s[k];
-        waypoint_theta[i] = i == 0 ? waypoints[0].z() : Unwrap(waypoints[i].z(), waypoint_theta[i - 1]);
+        waypoint_theta[i] =
+            i == 0 ? waypoints[0].z()
+                   : Unwrap(waypoints[i].z(), waypoint_theta[i - 1]);
     }
 
     const uint8_t ix = indexer.GetIndex(*this, kX);
@@ -125,12 +139,17 @@ void PositionStateGenerator::Generate(Path& current_path, const Indexer& indexer
             ++w;
         }
         const double ws = waypoint_s[w + 1] - waypoint_s[w];
-        const double b = ws > 0.0 ? std::clamp((s - waypoint_s[w]) / ws, 0.0, 1.0) : 1.0;
+        const double b =
+            ws > 0.0 ? std::clamp((s - waypoint_s[w]) / ws, 0.0, 1.0) : 1.0;
 
         current_path.SetArcLength(j, s);
         current_path.SetState(j, ix, spline_x(us));
         current_path.SetState(j, iy, spline_y(us));
-        current_path.SetState(j, itheta, waypoint_theta[w] + b * (waypoint_theta[w + 1] - waypoint_theta[w]));
+        current_path.SetState(
+            j,
+            itheta,
+            waypoint_theta[w] + b * (waypoint_theta[w + 1] - waypoint_theta[w])
+        );
     }
 }
 

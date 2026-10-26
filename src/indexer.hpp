@@ -9,8 +9,8 @@
 
 namespace autonav {
 
-// Where each generator's states sit in a waypoint's state vector. Generators are
-// registered in dependency order, each taking the next Dimension() slots.
+// Where each generator's states sit in a waypoint's state vector. Generators
+// are registered in dependency order, each taking the next Dimension() slots.
 class Indexer {
     using Generator = state_generators::AbstractStateGenerator;
 

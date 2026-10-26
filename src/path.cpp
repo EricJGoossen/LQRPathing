@@ -6,7 +6,8 @@
 
 namespace autonav {
 
-Path::Path(std::vector<Eigen::Vector3d> waypoints) : waypoints_(std::move(waypoints)) {}
+Path::Path(std::vector<Eigen::Vector3d> waypoints)
+  : waypoints_(std::move(waypoints)) {}
 
 void Path::SetWaypoints(std::vector<Eigen::Vector3d> waypoints) {
     waypoints_ = std::move(waypoints);
@@ -44,7 +45,9 @@ void Path::TimeParametrize() {
         const double ds = arc_length_[i] - arc_length_[i - 1];
         const double v = speed_[i - 1] + speed_[i];
         if (v <= 1e-9) {
-            throw std::runtime_error("TimeParametrize: zero speed inside the path");
+            throw std::runtime_error(
+                "TimeParametrize: zero speed inside the path"
+            );
         }
         time_[i] = time_[i - 1] + 2.0 * ds / v;
     }

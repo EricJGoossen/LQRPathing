@@ -21,11 +21,17 @@ struct VelocityLimits {
 
 class VelocityStateGenerator : public AbstractStateGenerator {
   public:
-    enum State : std::uint8_t { kXDot = 0, kYDot = 1, kThetaDot = 2, kDimensions = 3 };
+    enum State : std::uint8_t {
+        kXDot = 0,
+        kYDot = 1,
+        kThetaDot = 2,
+        kDimensions = 3
+    };
 
     using Limits = VelocityLimits;
 
-    explicit VelocityStateGenerator(Limits limits = Limits()) : limits_(limits) {}
+    explicit VelocityStateGenerator(Limits limits = Limits())
+      : limits_(limits) {}
     VelocityStateGenerator(const VelocityStateGenerator&) = delete;
     VelocityStateGenerator& operator=(const VelocityStateGenerator&) = delete;
     VelocityStateGenerator(VelocityStateGenerator&&) = default;

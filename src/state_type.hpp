@@ -2,7 +2,7 @@
 #define STATE_TYPE_HPP_
 
 namespace autonav {
-    using StateType = double;
+using StateType = double;
 }
 
 #endif

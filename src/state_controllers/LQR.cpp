@@ -8,17 +8,27 @@
 
 namespace autonav::state_controllers {
 
-LQR::LQR(const Eigen::MatrixXd& a, const Eigen::MatrixXd& b, const Eigen::MatrixXd& q,
-         const Eigen::MatrixXd& r)
-    : a_(a), b_(b) {
+LQR::LQR(
+    const Eigen::MatrixXd& a,
+    const Eigen::MatrixXd& b,
+    const Eigen::MatrixXd& q,
+    const Eigen::MatrixXd& r
+)
+  : a_(a), b_(b) {
     const Eigen::MatrixXd p = SolveRiccati(a, b, q, r);
     k_ = r.ldlt().solve(b.transpose() * p);
 }
 
-Eigen::VectorXd LQR::ComputeControl(const Eigen::VectorXd& error) const { return -k_ * error; }
+Eigen::VectorXd LQR::ComputeControl(const Eigen::VectorXd& error) const {
+    return -k_ * error;
+}
 
-Eigen::MatrixXd LQR::SolveRiccati(const Eigen::MatrixXd& a, const Eigen::MatrixXd& b,
-                                  const Eigen::MatrixXd& q, const Eigen::MatrixXd& r) {
+Eigen::MatrixXd LQR::SolveRiccati(
+    const Eigen::MatrixXd& a,
+    const Eigen::MatrixXd& b,
+    const Eigen::MatrixXd& q,
+    const Eigen::MatrixXd& r
+) {
     const Eigen::Index n = a.rows();
     Eigen::MatrixXd h(2 * n, 2 * n);
     h << a, -b * r.ldlt().solve(b.transpose()), -q, -a.transpose();

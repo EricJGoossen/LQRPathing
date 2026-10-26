@@ -15,13 +15,18 @@ namespace autonav::autonav_controllers {
 
 // Follows a generated path with an LQR. Each Step advances the reference along
 // the path's time parametrization, computes the world-frame force and torque
-// u = -K (x - x_ref), and rotates the force into the robot frame for the chassis.
+// u = -K (x - x_ref), and rotates the force into the robot frame for the
+// chassis.
 class LQRAutonavController : public IStateController {
   public:
-    LQRAutonavController(const Path& path, const Indexer& indexer,
-                         const state_controllers::LQR& lqr);
+    LQRAutonavController(
+        const Path& path,
+        const Indexer& indexer,
+        const state_controllers::LQR& lqr
+    );
 
-    // The robot's state in the world frame: x, y, theta, x_dot, y_dot, theta_dot.
+    // The robot's state in the world frame: x, y, theta, x_dot, y_dot,
+    // theta_dot.
     void SetRobotState(const Eigen::VectorXd& state) { robot_state_ = state; }
 
     void Step(double dt) override;
