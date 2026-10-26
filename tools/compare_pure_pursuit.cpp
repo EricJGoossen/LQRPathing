@@ -5,13 +5,13 @@
 // to M * kTraction (what the wheels can push before slipping) and the torque to
 // I * kMaxAngularAccel. Mass, inertia and the limits are picked, not measured.
 //
-// Pure pursuit is ARUW's ChassisAutoNavController (aruw-mcb,
-// chassis_auto_nav_controller.cpp), reimplemented from its logic: find the
-// robot's progress along a polyline path, aim at the point LOOKAHEAD_DISTANCE
-// further along, and command a velocity toward it of (error / lookahead) times
-// a speed that ramps up at MAX_TRANSLATION_ACCELERATION to the desired speed;
-// the chassis turns that velocity into force through its wheel-speed loop (here
-// a proportional loop with gain kWheelLoop). LQR follows the same path's
+// Pure pursuit is ARUW's ChassisAutoNavController, vendored unmodified from
+// aruw-mcb in third_party/aruw-mcb and run against host stand-ins for the
+// chassis, odometry transform and clock: it finds the robot's progress along a
+// polyline path, aims at the point LOOKAHEAD_DISTANCE further along, and
+// commands a chassis-frame wheel speed toward it; the chassis turns that into
+// force through its wheel-speed loop (here a proportional loop with gain
+// kWheelLoop). Beyblade and the cap bank are off. LQR follows the same path's
 // time-parametrized states with this library's LQRAutonavController. Both get
 // the same path: the generated spline, which pure pursuit receives as a
 // polyline of its samples.
@@ -26,6 +26,8 @@
 #include <cstdlib>
 #include <vector>
 
+#include "aruwsrc/algorithms/auto_nav_path.hpp"
+#include "aruwsrc/control/chassis/chassis_auto_nav_controller.hpp"
 #include "auto_nav_controllers/LQR_autonav_controller.hpp"
 #include "path.hpp"
 #include "path_generator.hpp"
@@ -41,11 +43,7 @@ constexpr double kMaxAngularAccel = 20.0;  // rad/s^2
 constexpr double kDt = 0.002;              // 500 Hz, the MCB's control loop
 constexpr double kTopSpeed = 2.0;          // m/s, both controllers
 
-// Pure pursuit, as in aruw-mcb.
-constexpr double kLookahead = 0.2;           // LOOKAHEAD_DISTANCE
-constexpr double kPosErrorThreshold = 0.01;  // POS_ERROR_THRESHOLD
-constexpr double kRampAcceleration = 1.0;    // MAX_TRANSLATION_ACCELERATION
-constexpr double kWheelLoop = 8.0;           // 1/s, chassis velocity loop
+constexpr double kWheelLoop = 8.0;  // 1/s, pure pursuit's chassis velocity loop
 
 struct Body {
     double x = 0, y = 0, th = 0, vx = 0, vy = 0, w = 0;
@@ -70,41 +68,6 @@ struct Body {
 struct Polyline {
     std::vector<double> x, y, s;
     double Length() const { return s.back(); }
-    void At(double p, double& px, double& py) const {
-        p = std::clamp(p, 0.0, Length());
-        size_t i = static_cast<size_t>(
-            std::upper_bound(s.begin(), s.end(), p) - s.begin()
-        );
-        i = std::clamp<size_t>(i, 1, s.size() - 1);
-        const double a = (p - s[i - 1]) / std::max(1e-9, s[i] - s[i - 1]);
-        px = x[i - 1] + a * (x[i] - x[i - 1]);
-        py = y[i - 1] + a * (y[i] - y[i - 1]);
-    }
-    // Progress along the path: the closest point, searched near the last
-    // progress (the team's estimateRobotProgress picks the local minimum
-    // nearest it).
-    double Progress(double px, double py, double last) const {
-        double best = last, best_d = 1e9;
-        for (size_t i = 1; i < s.size(); ++i) {
-            if (s[i] < last - 0.5 || s[i - 1] > last + 0.5) continue;
-            const double dx = x[i] - x[i - 1], dy = y[i] - y[i - 1],
-                         l2 = dx * dx + dy * dy;
-            const double a =
-                l2 > 0 ? std::clamp(
-                             ((px - x[i - 1]) * dx + (py - y[i - 1]) * dy) / l2,
-                             0.0,
-                             1.0
-                         )
-                       : 0.0;
-            const double d =
-                std::hypot(px - x[i - 1] - a * dx, py - y[i - 1] - a * dy);
-            if (d < best_d) {
-                best_d = d;
-                best = s[i - 1] + a * (s[i] - s[i - 1]);
-            }
-        }
-        return best;
-    }
     double Distance(double px, double py) const {
         double best = 1e9;
         for (size_t i = 1; i < s.size(); ++i) {
@@ -183,7 +146,31 @@ int main(int argc, char** argv) {
     Body pp, lq;
     pp.x = lq.x = waypoints[0].x();
     pp.y = lq.y = waypoints[0].y();
-    double pp_param = 0.0, ramp = 0.0, pp_done = -1, lq_done = -1;
+
+    // Built the way the robot's commands build it: reset, then push points.
+    // resetPath() marks the path changed, which the controller relies on to
+    // start its transition timeout.
+    aruwsrc::algorithms::AutoNavPath pp_path;
+    pp_path.resetPath();
+    for (size_t i = 0; i < line.x.size(); ++i)
+        pp_path.pushPoint(
+            tap::algorithms::transforms::Position(line.x[i], line.y[i], 0)
+        );
+    tap::Drivers drivers;
+    aruwsrc::control::chassis::HolonomicChassisSubsystem chassis;
+    tap::algorithms::transforms::Transform world_to_chassis(pp.x, pp.y, pp.th);
+    const aruwsrc::control::chassis::BeybladeConfig beyblade{0, 1, 0, 1, 0};
+    aruwsrc::control::chassis::ChassisAutoNavController pursuit(
+        drivers, chassis, world_to_chassis, beyblade, nullptr, 0, 0
+    );
+    pursuit.attachPath(&pp_path);
+    pursuit.setDesiredSpeed(kTopSpeed);
+    pursuit.initialize();
+    // Wheel RPM back to m/s, as the controller converts.
+    const double rpm_to_speed =
+        aruwsrc::control::chassis::WHEEL_RADIUS * 2 * M_PI / 60;
+
+    double pp_done = -1, lq_done = -1;
     double pp_sq = 0, lq_sq = 0, pp_max = 0, lq_max = 0;
     int samples = 0;
     const double end_x = line.x.back(), end_y = line.y.back();
@@ -192,17 +179,17 @@ int main(int argc, char** argv) {
     const double horizon = path.Duration() * 2.0 + 3.0;
     for (int k = 0; k * kDt < horizon; ++k) {
         const double t = k * kDt;
-        // Pure pursuit.
-        pp_param = line.Progress(pp.x, pp.y, pp_param);
-        double sx, sy;
-        line.At(pp_param + kLookahead, sx, sy);
-        const double ex = sx - pp.x, ey = sy - pp.y;
-        double cvx = 0, cvy = 0;
-        if (std::hypot(ex, ey) > kPosErrorThreshold) {
-            ramp = std::min(kTopSpeed, ramp + kRampAcceleration * kDt);
-            cvx = ex / kLookahead * ramp;
-            cvy = ey / kLookahead * ramp;
-        }
+        // Pure pursuit: the commanded chassis-frame velocity, back to the
+        // world frame. With beyblade off it commands no rotation.
+        tap::arch::clock::setTimeMicroseconds(
+            static_cast<uint32_t>(k * kDt * 1e6)
+        );
+        world_to_chassis.update(pp.x, pp.y, pp.th);
+        pursuit.runController(0, true, false);
+        const double bx = chassis.desiredX * rpm_to_speed,
+                     by = chassis.desiredY * rpm_to_speed;
+        const double cvx = std::cos(pp.th) * bx - std::sin(pp.th) * by,
+                     cvy = std::sin(pp.th) * bx + std::cos(pp.th) * by;
         pp.Apply(
             kMass * kWheelLoop * (cvx - pp.vx),
             kMass * kWheelLoop * (cvy - pp.vy),

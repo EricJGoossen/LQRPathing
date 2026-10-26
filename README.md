@@ -20,9 +20,11 @@ Real-time retargeting by the driver (step 3 of the proposal) is not built.
 EIGEN_INCLUDE=/usr/include ./build.sh      # a directory holding eigen3/
 ./LQRPathing                               # demo: a path's speed profile and the LQR gain
 ./compare_pure_pursuit 0.4 0.5 3.2 0.9 0.8 1.9 3.4 2.9 0.6 3.9   # waypoints in meters
+tools/plot_comparison.py 0.4 0.5 3.2 0.9 0.8 1.9 3.4 2.9 0.6 3.9  # animated; --save run.gif
 ```
 
-`tools/compare_pure_pursuit.cpp` runs this LQR and a reimplementation of the team's pure pursuit
-(aruw-mcb's `ChassisAutoNavController`) on the same simulated holonomic chassis and path, and
-prints both trajectories plus time to finish and distance from the path. The chassis's mass,
-inertia and traction limit there are picked, not measured.
+`tools/compare_pure_pursuit.cpp` runs this LQR and the team's pure pursuit (aruw-mcb's
+`ChassisAutoNavController`, vendored unmodified in `third_party/aruw-mcb`, GPL-3.0) on the same
+simulated holonomic chassis and path, and prints both trajectories plus time to finish and
+distance from the path. The chassis's mass, inertia and traction limit there are picked, not
+measured.
