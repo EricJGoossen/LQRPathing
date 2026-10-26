@@ -8,3 +8,4 @@ build/
 .clang-format
 .clang-tidy
 .clangd
+compare_pure_pursuit

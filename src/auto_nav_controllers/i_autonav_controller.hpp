@@ -8,15 +8,16 @@
 namespace autonav::autonav_controllers {
 class IStateController {
   public:
+    IStateController() = default;
     IStateController(const IStateController&) = default;
     IStateController& operator=(const IStateController&) = default;
     IStateController(IStateController&&) = default;
     IStateController& operator=(IStateController&&) = default;
     virtual ~IStateController() = default;
 
-    virtual void Step(double dt);
-    virtual void SetPathTarget(const std::vector<StateType>& path_target);
-    virtual std::vector<StateType> GetControl() const;
+    virtual void Step(double dt) = 0;
+    virtual void SetPathTarget(const std::vector<StateType>& path_target) = 0;
+    virtual std::vector<StateType> GetControl() const = 0;
 };
 }  // namespace autonav::autonav_controllers
 

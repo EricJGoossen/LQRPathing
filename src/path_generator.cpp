@@ -13,8 +13,9 @@ PathGenerator::PathGenerator(std::vector<const Generator*>& generators)
 
 void PathGenerator::GeneratePath(Path& waypoint_path) {
     for (const auto& generator : *generators_) {
-        generator->Generate(waypoint_path);
+        generator->Generate(waypoint_path, indexer_);
     }
+    waypoint_path.TimeParametrize();
 }
 
 void PathGenerator::InitializeGenerators() {   
